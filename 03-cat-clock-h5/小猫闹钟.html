@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小猫闹钟</title>
+    <link rel="icon" href="cat_icon.png" type="image/jpeg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+            color: #00d4ff;
+        }
+
+        .current-time {
+            text-align: center;
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .time-picker {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .time-unit {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: ns-resize;
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .time-unit:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        input.time-unit {
+            border: 1px solid transparent;
+            outline: none;
+            text-align: center;
+            font-family: inherit;
+            width: 0;
+            min-width: 0;
+        }
+
+        input.time-unit:focus {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.15);
+            cursor: text;
+        }
+
+        input.time-unit::-webkit-outer-spin-button,
+        input.time-unit::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .time-separator {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .content-input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1em;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        .content-input::placeholder {
+            color: #888;
+        }
+
+        .file-picker {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-picker input[type="file"] {
+            display: none;
+        }
+
+        .file-picker label {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ccc;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .file-picker label:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .file-name {
+            color: #aaa;
+            font-size: 0.9em;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .alarm-item .alarm-audio {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #fff;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: linear-gradient(135deg, #666 0%, #444 100%);
+        }
+
+        button.secondary:hover {
+            box-shadow: 0 5px 20px rgba(100, 100, 100, 0.4);
+        }
+
+        button.delete-btn {
+            background: linear-gradient(135deg, #ff4757 0%, #cc0033 100%);
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button.delete-btn:hover {
+            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.4);
+        }
+
+        .alarm-list {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .alarm-list h3 {
+            margin-bottom: 10px;
+            color: #00d4ff;
+        }
+
+        .alarm-item {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alarm-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .alarm-item.selected {
+            background: rgba(0, 212, 255, 0.3);
+            border: 1px solid #00d4ff;
+        }
+
+        .alarm-item.triggered {
+            opacity: 0.5;
+        }
+
+        .alarm-item.triggered .alarm-status {
+            color: #ff4757;
+        }
+
+        .alarm-item .alarm-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .alarm-item .alarm-time {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .alarm-item .alarm-content {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-top: 2px;
+        }
+
+        .alarm-item .alarm-status {
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        .empty-msg {
+            text-align: center;
+            color: #888;
+            padding: 30px;
+        }
+
+        .edit-hint {
+            text-align: center;
+            color: #00d4ff;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .edit-hint.show {
+            display: block;
+        }
+
+        /* 闹钟触发弹窗 */
+        .alarm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .alarm-modal.active {
+            display: flex;
+        }
+
+        .alarm-modal img {
+            width: 400px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .alarm-modal .alarm-text {
+            font-size: 1.8em;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+
+        .alarm-modal .countdown {
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .alarm-modal button {
+            background: linear-gradient(135deg, #ff4757 0%, #cc0033 100%);
+            padding: 15px 40px;
+            font-size: 1.2em;
+        }
+
+        /* 音频解锁提示 */
+        .audio-hint {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 200, 0, 0.9);
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .audio-hint.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>小猫闹钟</h1>
+        <div class="current-time" id="currentTime">00:00:00</div>
+
+        <div class="edit-hint" id="editHint">正在编辑闹钟，修改后点击保存</div>
+
+        <div class="control-panel">
+            <div class="time-picker">
+                <input type="text" inputmode="numeric" maxlength="2"
+                       class="time-unit" id="hourUnit" value="12"
+                       onwheel="scrollHour(event)"
+                       oninput="onHourInput(event)"
+                       onblur="commitHour()"
+                       onkeydown="onTimeKeydown(event, 'hour')"
+                       onfocus="this.select()">
+                <div class="time-separator">:</div>
+                <input type="text" inputmode="numeric" maxlength="2"
+                       class="time-unit" id="minuteUnit" value="00"
+                       onwheel="scrollMinute(event)"
+                       oninput="onMinuteInput(event)"
+                       onblur="commitMinute()"
+                       onkeydown="onTimeKeydown(event, 'minute')"
+                       onfocus="this.select()">
+            </div>
+            <button id="actionBtn" onclick="handleAction()">设置闹钟</button>
+            <button class="secondary" id="cancelBtn" onclick="cancelEdit()" style="display:none">取消</button>
+        </div>
+
+        <input type="text" class="content-input" id="contentInput" placeholder="闹钟内容（可选）">
+
+        <div class="file-picker">
+            <label for="audioInput">选择闹铃</label>
+            <input type="file" id="audioInput" accept=".mp3,.wav,.ogg,audio/*" onchange="onAudioSelected(event)">
+            <span class="file-name" id="fileName">使用默认闹铃 (bell3.mp3)</span>
+        </div>
+
+        <div class="alarm-list">
+            <h3>闹钟列表</h3>
+            <div id="alarmList"></div>
+        </div>
+
+        <button class="delete-btn" onclick="deleteSelectedAlarm()">删除选中闹钟</button>
+    </div>
+
+    <!-- 闹钟触发弹窗 -->
+    <div class="alarm-modal" id="alarmModal">
+        <img src="sing_picture.gif" alt="闹钟动画">
+        <div class="alarm-text" id="alarmText">闹钟时间：12:00</div>
+        <div class="countdown" id="countdown">20 秒后自动关闭</div>
+        <button onclick="stopAlarm()">停止闹钟</button>
+    </div>
+
+    <!-- 音频解锁提示 -->
+    <div class="audio-hint" id="audioHint">请点击页面任意位置以启用音频</div>
+
+    <script>
+        // 闹钟列表
+        let alarms = [];
+        let selectedAlarmIndex = -1;
+        let editIndex = -1;
+        let audioElement = null;
+        let alarmModalTimer = null;
+        let countdownTimer = null;
+        let isAudioUnlocked = false;
+        let currentAlarmAudio = null;
+        let selectedAudioFile = null;
+        let selectedAudioUrl = null;
+
+        let hour = 12;
+        let minute = 0;
+
+        // 初始化音频
+        function initAudio() {
+            if (isAudioUnlocked) return;
+
+            audioElement = new Audio('bell3.mp3');
+            audioElement.loop = true;
+
+            audioElement.play().then(() => {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+                isAudioUnlocked = true;
+                document.getElementById('audioHint').classList.remove('show');
+            }).catch(() => {
+                document.getElementById('audioHint').classList.add('show');
+            });
+        }
+
+        document.addEventListener('click', function unlockAudio() {
+            initAudio();
+            document.removeEventListener('click', unlockAudio);
+        }, { once: true });
+
+        function onAudioSelected(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedAudioFile = file;
+                selectedAudioUrl = URL.createObjectURL(file);
+                document.getElementById('fileName').textContent = file.name;
+            }
+        }
+
+        function pad(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        function updateTimeDisplay() {
+            document.getElementById('hourUnit').value = pad(hour);
+            document.getElementById('minuteUnit').value = pad(minute);
+        }
+
+        function scrollHour(e) {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                hour = (hour + 1) % 24;
+            } else {
+                hour = (hour - 1 + 24) % 24;
+            }
+            updateTimeDisplay();
+        }
+
+        function scrollMinute(e) {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                minute = (minute + 1) % 60;
+            } else {
+                minute = (minute - 1 + 60) % 60;
+            }
+            updateTimeDisplay();
+        }
+
+        function onTimeKeydown(e, kind) {
+            // Enter to confirm the input.
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.target.blur();
+                return;
+            }
+            // ArrowUp and ArrowDown step the value just like the wheel.
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const delta = e.key === 'ArrowUp' ? 1 : -1;
+                if (kind === 'hour') {
+                    hour = (hour + delta + 24) % 24;
+                } else {
+                    minute = (minute + delta + 60) % 60;
+                }
+                updateTimeDisplay();
+            }
+        }
+
+        function onHourInput(e) {
+            // Keep only digits and limit length to two characters.
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2);
+        }
+
+        function onMinuteInput(e) {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2);
+        }
+
+        function commitHour() {
+            const el = document.getElementById('hourUnit');
+            const raw = el.value.trim();
+            const n = parseInt(raw, 10);
+            if (raw === '' || isNaN(n) || n < 0 || n > 23) {
+                alert('小时必须是 0 到 23 之间的整数。');
+                el.value = pad(hour);
+                el.focus();
+                el.select();
+                return;
+            }
+            hour = n;
+            el.value = pad(hour);
+        }
+
+        function commitMinute() {
+            const el = document.getElementById('minuteUnit');
+            const raw = el.value.trim();
+            const n = parseInt(raw, 10);
+            if (raw === '' || isNaN(n) || n < 0 || n > 59) {
+                alert('分钟必须是 0 到 59 之间的整数。');
+                el.value = pad(minute);
+                el.focus();
+                el.select();
+                return;
+            }
+            minute = n;
+            el.value = pad(minute);
+        }
+
+        function getTimeString() {
+            return pad(hour) + ':' + pad(minute);
+        }
+
+        function formatTime(date) {
+            return date.toTimeString().slice(0, 8);
+        }
+
+        function formatTimeHM(date) {
+            return date.toTimeString().slice(0, 5);
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = formatTime(now);
+        }
+
+        function checkAlarms() {
+            const now = new Date();
+            const currentHM = formatTimeHM(now);
+
+            for (let i = 0; i < alarms.length; i++) {
+                const alarm = alarms[i];
+                if (alarm.time === currentHM && !alarm.triggered) {
+                    triggerAlarm(alarm);
+                    alarm.triggered = true;
+                    renderAlarmList();
+                    break;
+                }
+            }
+        }
+
+        function triggerAlarm(alarm) {
+            const modal = document.getElementById('alarmModal');
+            const text = document.getElementById('alarmText');
+            const countdown = document.getElementById('countdown');
+
+            const contentText = alarm.content ? ` - ${alarm.content}` : '';
+            text.textContent = `闹钟时间：${alarm.time}${contentText}`;
+            modal.classList.add('active');
+
+            if (currentAlarmAudio) {
+                currentAlarmAudio.pause();
+                currentAlarmAudio.currentTime = 0;
+                currentAlarmAudio = null;
+            }
+
+            if (alarm.audioUrl && isAudioUnlocked) {
+                currentAlarmAudio = new Audio(alarm.audioUrl);
+                currentAlarmAudio.loop = true;
+                currentAlarmAudio.play().catch(() => {});
+            } else if (audioElement && isAudioUnlocked) {
+                audioElement.currentTime = 0;
+                audioElement.play().catch(() => {});
+            }
+
+            let secondsLeft = 20;
+            countdown.textContent = `${secondsLeft} 秒后自动关闭`;
+
+            if (countdownTimer) clearInterval(countdownTimer);
+            countdownTimer = setInterval(() => {
+                secondsLeft--;
+                countdown.textContent = `${secondsLeft} 秒后自动关闭`;
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownTimer);
+                }
+            }, 1000);
+
+            if (alarmModalTimer) clearTimeout(alarmModalTimer);
+            alarmModalTimer = setTimeout(() => {
+                stopAlarm();
+            }, 20000);
+        }
+
+        function stopAlarm() {
+            const modal = document.getElementById('alarmModal');
+            modal.classList.remove('active');
+
+            if (currentAlarmAudio) {
+                currentAlarmAudio.pause();
+                currentAlarmAudio.currentTime = 0;
+                currentAlarmAudio = null;
+            }
+
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+            }
+
+            if (alarmModalTimer) {
+                clearTimeout(alarmModalTimer);
+                alarmModalTimer = null;
+            }
+
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+        }
+
+        function handleAction() {
+            // Commit any pending edits in the input boxes before acting.
+            commitHour();
+            commitMinute();
+            if (editIndex >= 0) {
+                saveEdit();
+            } else {
+                addAlarm();
+            }
+        }
+
+        function addAlarm() {
+            const time = getTimeString();
+            const content = document.getElementById('contentInput').value.trim();
+
+            if (alarms.some((a, idx) => idx !== editIndex && a.time === time && a.content === content)) {
+                alert('该时间和内容的闹钟已存在！');
+                return;
+            }
+
+            alarms.push({
+                time: time,
+                content: content,
+                audioUrl: selectedAudioUrl,
+                audioName: selectedAudioFile ? selectedAudioFile.name : null,
+                triggered: false
+            });
+
+            resetInputs();
+            renderAlarmList();
+        }
+
+        function saveEdit() {
+            if (editIndex < 0) return;
+
+            const time = getTimeString();
+            const content = document.getElementById('contentInput').value.trim();
+
+            const exists = alarms.some((a, idx) => idx !== editIndex && a.time === time && a.content === content);
+            if (exists) {
+                alert('该时间和内容的闹钟已存在！');
+                return;
+            }
+
+            alarms[editIndex] = {
+                time: time,
+                content: content,
+                audioUrl: selectedAudioUrl,
+                audioName: selectedAudioFile ? selectedAudioFile.name : null,
+                triggered: false
+            };
+            cancelEdit();
+            renderAlarmList();
+        }
+
+        function cancelEdit() {
+            editIndex = -1;
+            document.getElementById('editHint').classList.remove('show');
+            document.getElementById('actionBtn').textContent = '设置闹钟';
+            document.getElementById('cancelBtn').style.display = 'none';
+            resetInputs();
+            if (selectedAlarmIndex >= 0) {
+                selectedAlarmIndex = -1;
+                renderAlarmList();
+            }
+        }
+
+        function resetInputs() {
+            hour = 12;
+            minute = 0;
+            updateTimeDisplay();
+            document.getElementById('contentInput').value = '';
+            document.getElementById('audioInput').value = '';
+            selectedAudioFile = null;
+            selectedAudioUrl = null;
+            document.getElementById('fileName').textContent = '使用默认闹铃 (bell3.mp3)';
+        }
+
+        function renderAlarmList() {
+            const list = document.getElementById('alarmList');
+
+            if (alarms.length === 0) {
+                list.innerHTML = '<div class="empty-msg">暂无闹钟，请添加</div>';
+                selectedAlarmIndex = -1;
+                return;
+            }
+
+            list.innerHTML = alarms.map((alarm, index) => `
+                <div class="alarm-item ${index === selectedAlarmIndex ? 'selected' : ''} ${alarm.triggered ? 'triggered' : ''}"
+                     onclick="selectAlarm(${index})">
+                    <div class="alarm-info">
+                        <span class="alarm-time">${alarm.time}</span>
+                        ${alarm.content ? `<span class="alarm-content">${alarm.content}</span>` : ''}
+                        ${alarm.audioName ? `<span class="alarm-audio">闹铃: ${alarm.audioName}</span>` : ''}
+                    </div>
+                    <span class="alarm-status">${alarm.triggered ? '已响铃' : '等待中'}</span>
+                </div>
+            `).join('');
+        }
+
+        function selectAlarm(index) {
+            selectedAlarmIndex = index;
+            editIndex = index;
+
+            const alarm = alarms[index];
+            const [h, m] = alarm.time.split(':').map(Number);
+            hour = h;
+            minute = m;
+            updateTimeDisplay();
+            document.getElementById('contentInput').value = alarm.content || '';
+
+            if (alarm.audioUrl) {
+                selectedAudioUrl = alarm.audioUrl;
+                selectedAudioFile = null;
+                document.getElementById('fileName').textContent = alarm.audioName || '自定义闹铃';
+            } else {
+                selectedAudioUrl = null;
+                selectedAudioFile = null;
+                document.getElementById('fileName').textContent = '使用默认闹铃 (bell3.mp3)';
+            }
+            document.getElementById('audioInput').value = '';
+
+            document.getElementById('actionBtn').textContent = '保存修改';
+            document.getElementById('cancelBtn').style.display = 'inline-block';
+            document.getElementById('editHint').classList.add('show');
+
+            renderAlarmList();
+        }
+
+        function deleteSelectedAlarm() {
+            if (selectedAlarmIndex === -1) {
+                alert('请先选择要删除的闹钟！');
+                return;
+            }
+
+            alarms.splice(selectedAlarmIndex, 1);
+            if (editIndex === selectedAlarmIndex) cancelEdit();
+            else if (editIndex > selectedAlarmIndex) editIndex--;
+            selectedAlarmIndex = -1;
+            renderAlarmList();
+        }
+
+        updateTimeDisplay();
+        renderAlarmList();
+        updateCurrentTime();
+
+        setInterval(() => {
+            updateCurrentTime();
+            checkAlarms();
+        }, 1000);
+    </script>
+</body>
+</html>
